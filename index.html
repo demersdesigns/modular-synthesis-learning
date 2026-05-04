@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generative Ambient — Eurorack Learning Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --bg2: #131316;
+    --bg3: #1a1a1f;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.15);
+    --text: #e8e6e0;
+    --text-muted: #7a7870;
+    --text-dim: #4a4845;
+    --accent: #c8f0a0;
+    --accent2: #a0d4f0;
+    --accent3: #f0c0a0;
+    --accent4: #d0a0f0;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .site-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 64px;
+  }
+
+  .header-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.1s;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .header-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 520px;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.3s;
+  }
+
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 32px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.4s;
+  }
+
+  .meta-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .meta-item span {
+    color: var(--text-muted);
+  }
+
+  /* ── NAV ── */
+  .phase-nav {
+    display: flex;
+    gap: 0;
+    margin-bottom: 64px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.5s;
+  }
+
+  .phase-nav a {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    border-right: 1px solid var(--border);
+    transition: all 0.2s ease;
+  }
+
+  .phase-nav a:last-child { border-right: none; }
+
+  .phase-nav a:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+
+  .phase-nav a .nav-num {
+    display: block;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    transition: color 0.2s;
+  }
+
+  .phase-nav a:hover .nav-num { color: var(--accent); }
+
+  /* ── SECTIONS ── */
+  .phase-section {
+    margin-bottom: 80px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .phase-section.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .phase-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .p1 .phase-num { background: rgba(200,240,160,0.1); color: var(--accent); }
+  .p2 .phase-num { background: rgba(160,212,240,0.1); color: var(--accent2); }
+  .p3 .phase-num { background: rgba(240,192,160,0.1); color: var(--accent3); }
+  .p4 .phase-num { background: rgba(208,160,240,0.1); color: var(--accent4); }
+
+  .phase-title {
+    font-family: var(--mono);
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .phase-duration {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    letter-spacing: 0.06em;
+  }
+
+  .phase-goal {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 600px;
+    line-height: 1.75;
+    margin-bottom: 32px;
+    padding-left: 16px;
+    border-left: 2px solid var(--border-bright);
+  }
+
+  /* ── TECHNIQUES ── */
+  .techniques { display: flex; flex-direction: column; gap: 2px; }
+
+  .technique {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .technique:hover { border-color: var(--border-bright); }
+
+  .technique-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+
+  .technique-toggle:hover { background: var(--bg3); }
+
+  .t-marker {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .p1 .t-marker { background: var(--accent); }
+  .p2 .t-marker { background: var(--accent2); }
+  .p3 .t-marker { background: var(--accent3); }
+  .p4 .t-marker { background: var(--accent4); }
+
+  .t-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 400;
+    flex: 1;
+    letter-spacing: 0.01em;
+  }
+
+  .t-chevron {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: transform 0.2s;
+  }
+
+  .technique.open .t-chevron { transform: rotate(90deg); }
+
+  .technique-body {
+    display: none;
+    padding: 0 20px 20px 40px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.75;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .technique.open .technique-body { display: block; }
+
+  /* ── TIP BOX ── */
+  .tip-box {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .tip-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .p1 .tip-label { color: var(--accent); }
+  .p2 .tip-label { color: var(--accent2); }
+  .p3 .tip-label { color: var(--accent3); }
+  .p4 .tip-label { color: var(--accent4); }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 64px 0;
+    position: relative;
+  }
+
+  .section-divider::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -9px;
+    left: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding-right: 12px;
+  }
+
+  /* ── MODULE REFERENCE ── */
+  .module-section { margin-bottom: 80px; }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .module-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .module-search {
+    flex: 1;
+    min-width: 200px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .module-search::placeholder { color: var(--text-dim); }
+  .module-search:focus { border-color: var(--border-bright); }
+
+  .cat-btn {
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .cat-btn:hover { border-color: var(--border-bright); color: var(--text-muted); }
+  .cat-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,240,160,0.06); }
+
+  .module-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+
+  thead tr { background: var(--bg2); }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+
+  .td-n { color: var(--text-dim); font-family: var(--mono); font-size: 11px; width: 36px; }
+  .td-name { color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .td-mfr { font-size: 12px; }
+
+  .cat-pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    margin-bottom: 3px;
+  }
+
+  .cp-drum { background: rgba(240,160,100,0.12); color: #f0a064; }
+  .cp-generative { background: rgba(200,240,160,0.1); color: var(--accent); }
+  .cp-fx { background: rgba(160,212,240,0.1); color: var(--accent2); }
+  .cp-modulation { background: rgba(240,192,160,0.1); color: var(--accent3); }
+  .cp-source { background: rgba(208,160,240,0.1); color: var(--accent4); }
+  .cp-utility { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+  .cp-filter { background: rgba(240,160,200,0.1); color: #f0a0c8; }
+
+  .td-tags { font-size: 11px; color: var(--text-dim); }
+
+  .module-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── PRINCIPLES ── */
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 64px; }
+
+  .principle {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg2);
+  }
+
+  .principle-num {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--border-bright);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .principle-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .principle-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .footer-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+  }
+
+  .footer-link:hover { color: var(--accent); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .phase-nav { display: grid; grid-template-columns: 1fr 1fr; }
+    .phase-nav a { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .phase-nav a:nth-child(2), .phase-nav a:nth-child(4) { border-right: none; }
+    .phase-nav a:nth-child(3), .phase-nav a:nth-child(4) { border-bottom: none; }
+    h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="site-wrap">
+
+  <header>
+    <div class="header-eyebrow">Eurorack / Generative Systems</div>
+    <h1>Learning to make<br><em>generative ambient</em></h1>
+    <p class="header-sub">A structured approach to moving beyond four-on-the-floor patterns and into evolving, self-generating systems. Four phases, studied one at a time.</p>
+    <div class="header-meta">
+      <div class="meta-item">Phases <span>04</span></div>
+      <div class="meta-item">Modules <span>87</span></div>
+      <div class="meta-item">Updated <span>April 2026</span></div>
+    </div>
+  </header>
+
+  <nav class="phase-nav" aria-label="Jump to phase">
+    <a href="#phase1"><span class="nav-num">01</span>Constraints</a>
+    <a href="#phase2"><span class="nav-num">02</span>Vocabulary</a>
+    <a href="#phase3"><span class="nav-num">03</span>Archetypes</a>
+    <a href="#phase4"><span class="nav-num">04</span>Time & Space</a>
+  </nav>
+
+  <!-- CORE PRINCIPLES -->
+  <div class="section-title">Core mindset shifts</div>
+  <div class="principles">
+    <div class="principle">
+      <div class="principle-num">01</div>
+      <div class="principle-title">Design systems, not performances</div>
+      <div class="principle-body">Generative ambient is more like building a clock than playing a keyboard. You set up relationships and let them unfold.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-num">02</div>
+      <div class="principle-title">Constraint breaks paralysis</div>
+      <div class="principle-body">Analysis paralysis comes from too many choices. Artificially shrink the decision space before you start patching.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-num">03</div>
+      <div class="principle-title">Rigidity is the problem</div>
+      <div class="principle-body">A lot of the "techno feel" comes from clock rigidity, not the sounds themselves. Add probability before you change anything else.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-num">04</div>
+      <div class="principle-title">Record everything</div>
+      <div class="principle-body">Long generative patches often have one perfect window buried in 30 minutes of output. You won't catch it if you're not recording.</div>
+    </div>
+  </div>
+
+  <div class="section-divider" data-label="Learning phases"></div>
+
+  <!-- PHASE 1 -->
+  <section class="phase-section p1" id="phase1">
+    <div class="phase-header">
+      <span class="phase-num">Phase 01</span>
+    </div>
+    <h2 class="phase-title">Constraint practice</h2>
+    <div class="phase-duration">Weeks 1–2</div>
+    <p class="phase-goal">Break the analysis paralysis habit before introducing new techniques. Work with only 5 modules per session. The goal isn't great music — it's making something finished.</p>
+
+    <div class="techniques">
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">The 5-module challenge</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Before patching, physically pick 5 modules: one sound source, one filter, one modulation source, one clock/sequencer, one utility. Patch only with those. The constraint forces decisions. Repeat with different 5-module sets each session. Success here isn't making something good — it's making something finished. Any sound that has a clear beginning, middle, and end counts.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Patch journaling</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">After each session write 3–5 sentences: what you patched, what worked, what you'd try next. This externalizes decisions and reduces the feeling that you have to figure everything out at once. Over time it becomes a personal library of starting points.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Map your rack's voice</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Make a quick map of what each module in your rack does best. Knowing "this VCO tracks well, this one drifts nicely, this filter self-oscillates beautifully" gives you a vocabulary rather than a catalog to search. For ambient work: set your drum-heavy modules physically aside so they don't pull your eye — Mutant BD9, LXR, Hatz, uGrids, Seismograf BD, ADDAC103, BIA, Irukandji, and Rample.</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">Session goal</div>
+      Any sound that has a clear beginning, middle, and end counts as success. You are training decision-making, not music quality.
+    </div>
+  </section>
+
+  <!-- PHASE 2 -->
+  <section class="phase-section p2" id="phase2">
+    <div class="phase-header">
+      <span class="phase-num">Phase 02</span>
+    </div>
+    <h2 class="phase-title">Core generative vocabulary</h2>
+    <div class="phase-duration">Weeks 3–6</div>
+    <p class="phase-goal">Learn four foundational techniques one at a time. Spend multiple sessions with each before moving on. Resist combining them until you understand each individually.</p>
+
+    <div class="techniques">
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Clock division & multiplication</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">One master clock (Pamela's PRO Workout) feeding dividers (÷2, ÷4, ÷8, ÷16) and multipliers creates a web of rhythmically related events. Route different divisions to envelope triggers, sequencer clocks, and LFO resets. The result feels purposeful but not mechanical. Try clocking Mimetic Digitalis at ÷16 or ÷32 of your master — each step becomes a long, slow event.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Probability gates</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Run your gate signals through a probability module set to ~40–70%. Events that happen sometimes rather than always immediately break four-on-the-floor patterns. Pamela's PRO Workout has built-in gate probability per channel. Try it on a bass drum or melody trigger first — the contrast with a steady kick is revealing. Pachinko and Pet Rock are entirely built around this idea.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Slow random modulation</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Sample & Hold clocked at 0.1–0.01Hz, slewed heavily through the Befaco Slew, patched to filter cutoff, reverb mix, or oscillator pitch (with attenuator). The parameter should drift over 2–5 minutes, not seconds. This is the core of the "evolving over time" quality. Use Pamela's PRO Workout to generate slow random, Airstreamer or Infinitely Maybe as S&H sources, and always pass through the Slew before the destination.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Feedback loops</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Route an audio output back into a CV input (via attenuator + offset), or patch a sequencer's output CV into its own reset or direction input. Feedback systems self-modify in ways that feel alive. Start gentle — small amounts of feedback go a long way. The Turing Machine Mk II is essentially a feedback loop by design. Babel is great for creating CV feedback math.</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">Key rule</div>
+      One technique per session. The interactions between techniques are hard to understand if you've never isolated the parts. Combination comes in Phase 3.
+    </div>
+  </section>
+
+  <!-- PHASE 3 -->
+  <section class="phase-section p3" id="phase3">
+    <div class="phase-header">
+      <span class="phase-num">Phase 03</span>
+    </div>
+    <h2 class="phase-title">Patch archetypes</h2>
+    <div class="phase-duration">Weeks 7–10</div>
+    <p class="phase-goal">Study canonical generative patch structures and rebuild them from scratch yourself. Reverse-engineering is one of the fastest ways to learn.</p>
+
+    <div class="techniques">
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Random voltage garden</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Multiple independent slow random sources — each controlling one unrelated parameter: one drifts pitch (into A-156v quantizer), one drifts filter cutoff (into AI024 X Filter), one drifts reverb pre-delay (into Aurora or Milky Way). No shared clock. The independence makes it feel truly organic. Use Infinitely Maybe, 1036, Pico RND, and Airstreamer as your four independent random sources, all slewed separately through the Befaco Slew.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Self-patching oscillator network</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">2–3 oscillators FM-ing each other in a ring or web topology, with slowly drifting modulation depths. The FM ratios change the timbre continuously. Keep oscillators close to harmonic ratios (1:2, 2:3, 3:4) for pitched ambience, or let them drift away for more textural results. Try the SYSTEM 100 Dual VCO and DIY Polivoks VCO FM-ing each other, with Generate 3 controlling the FM depth slowly over time.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Long probabilistic sequencer</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">A 16–32 step sequencer running slowly (1 step per 2–4 seconds), with each step having independent gate probability. Every cycle through is slightly different. M185 Sequencer is perfect for this with its stage-based logic and variable repeats. Pair with A-156v quantizer set to a pentatonic or whole-tone scale. Feed pitch to Osiris or Surface, with Aurora for reverb.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Subharmonicon as generative engine</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">The Subharmonicon is a self-contained generative instrument — its subharmonic oscillators and internal sequencers can create slowly evolving polyrhythmic textures without any external patching. Start here for a dedicated ambient session: run its output through Milky Way (granular mode) and Aurora (reverb freeze) and spend an entire session just learning its internal clock relationships and subharmonic ratios.</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">Recommended approach</div>
+      Find a patch you like in the Eurorack community (YouTube, ModularGrid patches) and rebuild it module-for-module — then swap your modules in one at a time. Always build the archetype completely before customising.
+    </div>
+  </section>
+
+  <!-- PHASE 4 -->
+  <section class="phase-section p4" id="phase4">
+    <div class="phase-header">
+      <span class="phase-num">Phase 04</span>
+    </div>
+    <h2 class="phase-title">Time & space</h2>
+    <div class="phase-duration">Ongoing</div>
+    <p class="phase-goal">Generative patches live or die by their relationship with time. Focus on the effects chain and how events relate to each other temporally. Think in longer arcs than individual events.</p>
+
+    <div class="techniques">
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Modulated reverb</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">A slowly drifting CV patched to reverb size, decay, or pre-delay turns a static reverb tail into an evolving space. Even 5–10% depth of modulation at 0.05Hz dramatically changes how the reverb feels over time. Aurora has CV-controllable parameters — try patching a Pamela LFO at its slowest rate into the size or decay. Milky Way's granular parameters respond beautifully to slow random modulation.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Offset event timing</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">When two melodic events happen at exactly the same time, they feel mechanical. Offset them by small amounts using a clock delay, Pamela's PWM/swing, or by routing gates through different sequential stages. The Muxlicer can create sequential gate routing with small timing offsets between voices. This is the difference between "computer music" and "music played by people who drift."</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Macro-scale structure</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">Plan for something to change over 5, 10, and 20 minutes. A slow envelope running at its absolute slowest can open a filter over 10 minutes, giving the patch a sense of arrival. ForeCastle (Circuit Abbey) is a quad envelope generator — run one channel at its slowest possible rate as a macro shaper. Think about your patch having a sunrise: a long, slow brightening rather than a static state.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">The ambient effects chain</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">A recommended signal chain for ambient: sound source → filter (AI024 or Squawk Dirty To Me, gently open) → Nostalgia 1.0 (tape delay, low mix, ~300ms) → µClouds SE (light granular scatter, freeze engaged) → Aurora (large reverb, slow attack) → Milky Way (granular freeze layer at low mix) → output. Each stage adds time and blur. Modulate at least two parameters in this chain with independent slow random sources.</div>
+      </div>
+      <div class="technique" onclick="toggleTechnique(this)">
+        <button class="technique-toggle" aria-expanded="false">
+          <span class="t-marker"></span>
+          <span class="t-name">Looping Delay as memory</span>
+          <span class="t-chevron">▶</span>
+        </button>
+        <div class="technique-body">The 4ms Looping Delay supports loops up to 90 seconds. Use it as a long memory: record a 30–60 second texture, then let the live patch drift over it. The loop becomes a slowly fading past while the present evolves. This is one of the simplest ways to create a sense of depth and time in a live ambient patch without additional preparation.</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">The most important rule</div>
+      Record everything. Always. Long generative patches often have one perfect 3-minute window buried in 30 minutes of output. You won't catch it if you're not recording.
+    </div>
+  </section>
+
+  <div class="section-divider" data-label="Module reference"></div>
+
+  <!-- MODULE REFERENCE -->
+  <div class="module-section" id="modules">
+    <div class="section-title">Module collection — 87 modules</div>
+
+    <div class="module-controls">
+      <input type="text" class="module-search" id="modSearch" placeholder="Search module or manufacturer..." oninput="renderModules()">
+      <button class="cat-btn active" data-cat="all" onclick="setCat('all',this)">All</button>
+      <button class="cat-btn" data-cat="generative" onclick="setCat('generative',this)">Generative</button>
+      <button class="cat-btn" data-cat="source" onclick="setCat('source',this)">Sources</button>
+      <button class="cat-btn" data-cat="fx" onclick="setCat('fx',this)">Effects</button>
+      <button class="cat-btn" data-cat="modulation" onclick="setCat('modulation',this)">Modulation</button>
+      <button class="cat-btn" data-cat="filter" onclick="setCat('filter',this)">Filters</button>
+      <button class="cat-btn" data-cat="utility" onclick="setCat('utility',this)">Utility</button>
+      <button class="cat-btn" data-cat="drum" onclick="setCat('drum',this)">Drums</button>
+    </div>
+
+    <div class="module-count" id="modCount">Showing 87 of 87 modules</div>
+
+    <div class="module-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Module</th>
+            <th>Manufacturer</th>
+            <th>Category / Tags</th>
+          </tr>
+        </thead>
+        <tbody id="modTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <span class="footer-text">Generative Ambient — Eurorack Learning Guide</span>
+    <a class="footer-link" href="https://modulargrid.net" target="_blank" rel="noopener">modulargrid.net ↗</a>
+  </footer>
+
+</div><!-- /site-wrap -->
+
+<script>
+const MODULES = [
+  {n:1,name:"Hexinverter Mutant BD9",mfr:"Erica Synths",cat:"drum",tags:"Drum / Synth Voice"},
+  {n:2,name:"Slew",mfr:"Befaco",cat:"modulation",tags:"Envelope Generator / Slew Limiter"},
+  {n:3,name:"Light Rail",mfr:"After Later Audio",cat:"utility",tags:"Multiple / Utility"},
+  {n:4,name:"lx-euclid",mfr:"AtoVproject",cat:"generative",tags:"Clock Generator / Clock Modulator"},
+  {n:5,name:"AI024 X Filter",mfr:"AI Synthesis",cat:"filter",tags:"Filter"},
+  {n:6,name:"Pet Rock",mfr:"Jonah Senzel",cat:"generative",tags:"Clock Modulator / Random"},
+  {n:7,name:"Looping Delay",mfr:"4ms Company",cat:"fx",tags:"Delay / Looper / Digital"},
+  {n:8,name:"ADDAC107",mfr:"ADDAC System",cat:"source",tags:"Synth Voice"},
+  {n:9,name:"EDU Compressor",mfr:"Erica Synths",cat:"utility",tags:"Dynamics / VCA"},
+  {n:10,name:"MEGA-TANG",mfr:"ALM Busy Circuits",cat:"utility",tags:"Stereo Mixer / VCA / Quad"},
+  {n:11,name:"Pamela's PRO Workout",mfr:"ALM Busy Circuits",cat:"generative",tags:"Clock / LFO / Sequencer / Quantizer / Random"},
+  {n:12,name:"Buildup&Drop Control unit",mfr:"Voltage Vibes",cat:"utility",tags:"Attenuator / CV Modulation / Switch"},
+  {n:13,name:"Nautilus",mfr:"Qu-Bit Electronix",cat:"fx",tags:"Delay / Digital / Stereo / Effect"},
+  {n:14,name:"LXR eurorack module",mfr:"Erica Synths",cat:"drum",tags:"Drum"},
+  {n:15,name:"UniFX",mfr:"Boredbrain Music",cat:"utility",tags:"External / Utility / VCA"},
+  {n:16,name:"Scrat",mfr:"Neutral Labs",cat:"filter",tags:"Distortion / Effect / Filter"},
+  {n:17,name:"Valmorification",mfr:"Nonlinearcircuits",cat:"modulation",tags:"LFO / Waveshaper"},
+  {n:18,name:"Marsupial",mfr:"SetonixSynth",cat:"filter",tags:"Filter / Dual Stereo"},
+  {n:19,name:"MEX",mfr:"Befaco",cat:"utility",tags:"Expander"},
+  {n:20,name:"Osiris",mfr:"Modbap Modular",cat:"source",tags:"Oscillator / Synth Voice / Digital"},
+  {n:21,name:"AI001 Multiple Black",mfr:"AI Synthesis",cat:"utility",tags:"Multiple / Utility / Dual Stereo"},
+  {n:22,name:"Hatz v2",mfr:"Patching Panda",cat:"drum",tags:"Drum / Dynamics / Noise / Synth Voice"},
+  {n:23,name:"Babel",mfr:"New Systems Instruments",cat:"modulation",tags:"CV Modulation / Logic / Ring Modulator / Waveshaper"},
+  {n:24,name:"DATA",mfr:"Mordax",cat:"utility",tags:"Clock / LFO / Oscillator / Tuner / Utility"},
+  {n:25,name:"uGrids",mfr:"CalSynth",cat:"drum",tags:"Clock Generator / Random / Sequencer"},
+  {n:26,name:"1036",mfr:"Behringer",cat:"modulation",tags:"Random / Sample and Hold / Dual Stereo"},
+  {n:27,name:"ROTLFO",mfr:"Mobula Mobular",cat:"modulation",tags:"LFO"},
+  {n:28,name:"M185 Sequencer",mfr:"RYK Modular",cat:"generative",tags:"Sequencer / MIDI / Clock / CV Modulation / Random"},
+  {n:29,name:"Rample",mfr:"Squarp Instruments",cat:"drum",tags:"Sampling / Drum / MIDI"},
+  {n:30,name:"MFOS Phaser",mfr:"MFOS",cat:"fx",tags:"Phase Shifter / Effect"},
+  {n:31,name:"Mimetic Digitalis",mfr:"Noise Engineering",cat:"generative",tags:"CV Modulation / Random / Sequencer"},
+  {n:32,name:"Univer Inter",mfr:"Noise Engineering",cat:"utility",tags:"MIDI"},
+  {n:33,name:"Pachinko",mfr:"CalSynth",cat:"generative",tags:"Clock Generator / S&H / Sequencer / Random"},
+  {n:34,name:"Aurora",mfr:"Qu-Bit Electronix",cat:"fx",tags:"Reverb / Pitch Shifter / Dual Stereo / Effect"},
+  {n:35,name:"Data Bender",mfr:"Qu-Bit Electronix",cat:"fx",tags:"Digital / Distortion / Sampling / Stereo / Effect"},
+  {n:36,name:"Surface",mfr:"Qu-Bit Electronix",cat:"source",tags:"Digital / Oscillator / Synth Voice / Dual Stereo"},
+  {n:37,name:"Seismograf BD",mfr:"Frequency Central",cat:"drum",tags:"Drum"},
+  {n:38,name:"Infinitely Maybe",mfr:"Frequency Central",cat:"modulation",tags:"Noise / Sample and Hold / Utility / Random"},
+  {n:39,name:"Nostalgia 1.0",mfr:"Dreadbox",cat:"fx",tags:"Delay / Effect / External / LFO"},
+  {n:40,name:"Quad Pingable LFO",mfr:"4ms Company",cat:"modulation",tags:"Clock Modulator / Digital / LFO / Quad"},
+  {n:41,name:"Stereo Line Out 1U",mfr:"Intellijel",cat:"utility",tags:"Attenuator / Dual Stereo / External / Utility"},
+  {n:42,name:"Outs",mfr:"Intellijel",cat:"utility",tags:"Attenuator / Dual Stereo / External / Utility"},
+  {n:43,name:"AI010 Switching Attenuator",mfr:"AI Synthesis",cat:"utility",tags:"Attenuator / Multiple / Utility / Dual Stereo"},
+  {n:44,name:"ADDAC103 T-Networks",mfr:"ADDAC System",cat:"drum",tags:"Drum / Quad / Filter"},
+  {n:45,name:"Generate 3",mfr:"Joranalogue Audio Design",cat:"modulation",tags:"Oscillator / Function Generator"},
+  {n:46,name:"Pico SEQ2",mfr:"Erica Synths",cat:"generative",tags:"Sequencer / Waveshaper"},
+  {n:47,name:"Airstreamer",mfr:"Endorphin.es",cat:"modulation",tags:"Envelope Generator / LFO / Oscillator / CV Modulation / S&H / Slew Limiter"},
+  {n:48,name:"Squawk Dirty To Me",mfr:"Endorphin.es",cat:"filter",tags:"Filter / VCA / Dual Stereo / Digital / Effect / Low Pass Gate"},
+  {n:49,name:"Godspeed",mfr:"Endorphin.es",cat:"source",tags:"Oscillator / Tuner / Waveshaper / Noise"},
+  {n:50,name:"Milky Way",mfr:"Endorphin.es",cat:"fx",tags:"Granular / Effect / VCA / Delay / Panning / Reverb"},
+  {n:51,name:"ForeCastle",mfr:"Circuit Abbey",cat:"modulation",tags:"Envelope Generator / Quad"},
+  {n:52,name:"Bloom",mfr:"Qu-Bit Electronix",cat:"generative",tags:"Clock Generator / Dual Stereo / Random / Sequencer"},
+  {n:53,name:"µClouds SE",mfr:"Tall Dog",cat:"fx",tags:"Delay / Digital / Effect / Pitch Shifter / Sampling"},
+  {n:54,name:"Steppy 1U",mfr:"Intellijel",cat:"generative",tags:"Digital / Sequencer / Clock Modulator / Quad / Random"},
+  {n:55,name:"Muta Jovis",mfr:"Noise Engineering",cat:"utility",tags:"Multiple / Utility"},
+  {n:56,name:"Clep Diaz",mfr:"Noise Engineering",cat:"generative",tags:"CV Modulation / LFO / Random / Sequencer"},
+  {n:57,name:"Basimilus Iteritas Alter",mfr:"Noise Engineering",cat:"drum",tags:"Drum / Oscillator"},
+  {n:58,name:"Dual FX",mfr:"Erica Synths",cat:"fx",tags:"Effect / Dual Stereo"},
+  {n:59,name:"Subharmonicon",mfr:"Moog Music Inc.",cat:"source",tags:"Clock / Filter / Oscillator / Sequencer / Synth Voice / VCA"},
+  {n:60,name:"SYSTEM 100 112 DUAL VCO",mfr:"Behringer",cat:"source",tags:"Dual Stereo / Oscillator"},
+  {n:61,name:"uO_c",mfr:"Grayscale",cat:"generative",tags:"CV Modulation / Digital / Quad"},
+  {n:62,name:"DFAM",mfr:"Moog Music Inc.",cat:"drum",tags:"Clock / Drum / Noise / Oscillator / Sequencer / Synth Voice"},
+  {n:63,name:"Turing Machine Mk II",mfr:"Music Thing Modular",cat:"generative",tags:"Noise / Random / Sequencer"},
+  {n:64,name:"Muxlicer",mfr:"Befaco",cat:"generative",tags:"Sequencer / Switch / Clock Generator"},
+  {n:65,name:"Burst",mfr:"Befaco",cat:"modulation",tags:"Clock Generator / Clock Modulator / Frequency Divider / Random"},
+  {n:66,name:"µBraids SE",mfr:"Tall Dog",cat:"source",tags:"Digital / Oscillator / Drum / Noise / Synth Voice"},
+  {n:67,name:"DIY Polivoks VCO",mfr:"Erica Synths",cat:"source",tags:"Oscillator"},
+  {n:68,name:"Buff Mult 1U",mfr:"Intellijel",cat:"utility",tags:"Multiple"},
+  {n:69,name:"Quad VCA",mfr:"Intellijel",cat:"utility",tags:"Mixer / VCA / Quad"},
+  {n:70,name:"Disting mk4",mfr:"Expert Sleepers",cat:"utility",tags:"Effect / Quantizer / Utility / LFO / Oscillator / Delay / Waveshaper"},
+  {n:71,name:"A-101-2v",mfr:"Doepfer",cat:"filter",tags:"Low Pass Gate / VCA"},
+  {n:72,name:"Irukandji Glitch Drum VCO",mfr:"Beast-Tek",cat:"drum",tags:"Drum / Oscillator / Digital / Synth Voice"},
+  {n:73,name:"Pico DSP",mfr:"Erica Synths",cat:"fx",tags:"Delay / Distortion / Effect / Panning / Reverb"},
+  {n:74,name:"Joystick",mfr:"horstronic",cat:"utility",tags:"Attenuator / Controller / Polarizer"},
+  {n:75,name:"AI001 Multiple",mfr:"AI Synthesis",cat:"utility",tags:"Multiple"},
+  {n:76,name:"A-156v",mfr:"Doepfer",cat:"utility",tags:"Dual Stereo / Quantizer"},
+  {n:77,name:"Pico RND",mfr:"Erica Synths",cat:"modulation",tags:"LFO / Noise / Random"},
+  {n:78,name:"Pico Trigger",mfr:"Erica Synths",cat:"modulation",tags:"Clock Generator / Controller / Function Generator"},
+  {n:79,name:"USB Power 1U",mfr:"Intellijel",cat:"utility",tags:"Power"},
+  {n:80,name:"Quadratt 1U",mfr:"Intellijel",cat:"utility",tags:"Attenuator / Mixer / Utility / CV Modulation"},
+  {n:81,name:"ADDAC705",mfr:"ADDAC System",cat:"filter",tags:"Filter / Distortion"},
+  {n:82,name:"Dual Atenuverter",mfr:"Befaco",cat:"utility",tags:"Attenuator / Utility / Mixer"},
+  {n:83,name:"Mutable Instruments Frames",mfr:"Grayscale",cat:"utility",tags:"Attenuator / CV Modulation / Mixer / VCA"},
+  {n:84,name:"MIDI 3",mfr:"Pittsburgh Modular",cat:"utility",tags:"Clock Generator / CV Modulation / MIDI / Dual Stereo"},
+  {n:85,name:"RF Nomad",mfr:"Evaton Technologies",cat:"source",tags:"Oscillator / Noise"},
+  {n:86,name:"A-151",mfr:"Doepfer",cat:"utility",tags:"Switch / Quad"},
+  {n:87,name:"A-138b",mfr:"Doepfer",cat:"utility",tags:"Mixer / Quad"},
+];
+
+const CAT_CLASS = {drum:'cp-drum',generative:'cp-generative',fx:'cp-fx',modulation:'cp-modulation',source:'cp-source',utility:'cp-utility',filter:'cp-filter'};
+const CAT_LABEL = {drum:'Drum',generative:'Generative',fx:'Effect',modulation:'Modulation',source:'Source',utility:'Utility',filter:'Filter'};
+
+let activeCat = 'all';
+
+function setCat(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderModules();
+}
+
+function renderModules() {
+  const q = document.getElementById('modSearch').value.toLowerCase();
+  const tbody = document.getElementById('modTbody');
+  const filtered = MODULES.filter(m => {
+    const matchCat = activeCat === 'all' || m.cat === activeCat;
+    const matchQ = !q || m.name.toLowerCase().includes(q) || m.mfr.toLowerCase().includes(q) || m.tags.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  document.getElementById('modCount').textContent = `Showing ${filtered.length} of ${MODULES.length} modules`;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:12px;">no modules match</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(m => `
+    <tr>
+      <td class="td-n">${m.n}</td>
+      <td class="td-name">${m.name}</td>
+      <td class="td-mfr">${m.mfr}</td>
+      <td><span class="cat-pill ${CAT_CLASS[m.cat]}">${CAT_LABEL[m.cat]}</span><br><span class="td-tags">${m.tags}</span></td>
+    </tr>
+  `).join('');
+}
+
+function toggleTechnique(el) {
+  el.classList.toggle('open');
+  const btn = el.querySelector('.technique-toggle');
+  btn.setAttribute('aria-expanded', el.classList.contains('open'));
+}
+
+// Intersection observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.phase-section').forEach(s => observer.observe(s));
+
+renderModules();
+</script>
+</body>
+</html>
