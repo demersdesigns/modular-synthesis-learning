@@ -1,17 +1,9 @@
 import type { Metadata } from 'next'
-import { DM_Mono, DM_Sans } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import '@/styles/globals.css'
 
-const dmMono = DM_Mono({
-  weight: ['300', '400', '500'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  variable: '--font-dm-mono',
-  display: 'swap',
-})
-
 const dmSans = DM_Sans({
-  weight: ['300', '400', '500'],
+  weight: ['300', '400', '500', '600', '700'],
   style: ['normal', 'italic'],
   subsets: ['latin'],
   variable: '--font-dm-sans',
@@ -24,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${dmMono.variable} ${dmSans.variable}`}>{children}</body>
+    <html lang="en" className={dmSans.variable}>
+      <body>{children}</body>
     </html>
   )
 }
