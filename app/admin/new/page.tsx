@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase'
 import JournalEditor from '@/components/JournalEditor'
 
 function generateSlug(title: string, suffix?: string): string {
@@ -23,7 +23,7 @@ async function createEntry(formData: FormData) {
 
   let slug = generateSlug(title)
 
-  const db = getSupabase()
+  const db = getSupabaseAdmin()
 
   const { data: existing } = await db
     .from('journal_entries')

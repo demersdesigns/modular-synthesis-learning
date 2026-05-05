@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { getSupabase, JournalEntry } from '@/lib/supabase'
+import { getSupabaseAdmin, JournalEntry } from '@/lib/supabase'
 import JournalEditor from '@/components/JournalEditor'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,7 @@ async function updateEntry(formData: FormData) {
 
   if (!title || !body) return
 
-  const db = getSupabase()
+  const db = getSupabaseAdmin()
   await db
     .from('journal_entries')
     .update({ title, body, updated_at: new Date().toISOString() })
@@ -26,7 +26,7 @@ async function updateEntry(formData: FormData) {
 }
 
 export default async function EditEntryPage({ params }: { params: { id: string } }) {
-  const { data: entry } = await getSupabase()
+  const { data: entry } = await getSupabaseAdmin()
     .from('journal_entries')
     .select('*')
     .eq('id', params.id)

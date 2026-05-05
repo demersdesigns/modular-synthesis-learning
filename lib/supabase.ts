@@ -7,6 +7,14 @@ export function getSupabase() {
   )
 }
 
+// Bypasses RLS — use only in server actions and server components.
+export function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export interface JournalEntry {
   id: string
   slug: string
