@@ -19,7 +19,7 @@ Fill in `.env.local`:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ADMIN_PASSWORD=choose-a-strong-password
 ```
 
@@ -42,6 +42,6 @@ Admin interface is at `/admin` — first visit redirects to `/admin/login`.
 2. Import the repository in [Vercel](https://vercel.com)
 3. Add the three environment variables in Vercel project settings:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (labeled "Publishable key" in the Supabase dashboard)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `ADMIN_PASSWORD`
 4. Deploy — Vercel auto-deploys on every push to `main`

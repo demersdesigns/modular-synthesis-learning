@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
-import { getSupabase, JournalEntry } from '@/lib/supabase'
+import { getSupabaseAdmin, JournalEntry } from '@/lib/supabase'
 import DeleteEntryButton from '@/components/DeleteEntryButton'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 async function deleteEntry(formData: FormData) {
   'use server'
   const id = formData.get('id') as string
-  await getSupabase().from('journal_entries').delete().eq('id', id)
+  await getSupabaseAdmin().from('journal_entries').delete().eq('id', id)
   revalidatePath('/admin')
   revalidatePath('/journal')
 }
@@ -18,7 +18,7 @@ function formatDate(iso: string): string {
 }
 
 export default async function AdminPage() {
-  const { data: entries } = await getSupabase()
+  const { data: entries } = await getSupabaseAdmin()
     .from('journal_entries')
     .select('id, slug, title, created_at')
     .order('created_at', { ascending: false })
