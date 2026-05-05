@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getSupabase, JournalEntry } from '@/lib/supabase'
+import { getSupabaseAdmin, JournalEntry } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +12,7 @@ function formatDate(iso: string): string {
 }
 
 export default async function JournalPage() {
-  const { data: entries } = await getSupabase()
+  const { data: entries } = await getSupabaseAdmin()
     .from('journal_entries')
     .select('id, slug, title, body, created_at')
     .order('created_at', { ascending: false })
