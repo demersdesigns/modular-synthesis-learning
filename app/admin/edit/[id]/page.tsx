@@ -1,8 +1,7 @@
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getSupabaseAdmin, JournalEntry } from '@/lib/supabase'
-import JournalEditor from '@/components/JournalEditor'
+import EditEntryForm from './EditEntryForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,38 +44,7 @@ export default async function EditEntryPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      <form action={updateEntry} className="entry-form">
-        <input type="hidden" name="id" value={entry.id} />
-        <input type="hidden" name="slug" value={entry.slug} />
-
-        <div className="form-field">
-          <label className="form-label" htmlFor="title">
-            Title
-          </label>
-          <input
-            id="title"
-            type="text"
-            name="title"
-            className="form-input"
-            defaultValue={entry.title}
-            required
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Body</label>
-          <JournalEditor name="body" initialContent={entry.body} />
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" className="btn-primary">
-            Save entry
-          </button>
-          <Link href="/admin" className="btn-cancel">
-            Cancel
-          </Link>
-        </div>
-      </form>
+      <EditEntryForm entry={entry} updateEntry={updateEntry} />
     </div>
   )
 }

@@ -1,12 +1,15 @@
 'use client'
 import { useRef } from 'react'
-import { useFormState } from 'react-dom'
 import Link from 'next/link'
 import JournalEditor, { type JournalEditorHandle } from '@/components/JournalEditor'
-import { createEntry } from './actions'
+import { type JournalEntry } from '@/lib/supabase'
 
-export default function NewEntryForm() {
-  const [state, action] = useFormState(createEntry, null)
+interface Props {
+  entry: JournalEntry
+  updateEntry: (formData: FormData) => Promise<void>
+}
+
+export default function EditEntryForm({ entry, updateEntry }: Props) {
   const editorRef = useRef<JournalEditorHandle>(null)
 
   function syncEditor() {
@@ -14,12 +17,9 @@ export default function NewEntryForm() {
   }
 
   return (
-    <form action={action} onSubmit={syncEditor} className="entry-form">
-      {state?.error && (
-        <div style={{ color: 'var(--accent-red, #f87171)', fontFamily: 'var(--mono)', fontSize: '13px', marginBottom: '16px' }}>
-          {state.error}
-        </div>
-      )}
+    <form action={updateEntry} onSubmit={syncEditor} className="entry-form">
+      <input type="hidden" name="id" value={entry.id} />
+      <input type="hidden" name="slug" value={entry.slug} />
 
       <div className="form-field">
         <label className="form-label" htmlFor="title">
@@ -30,15 +30,14 @@ export default function NewEntryForm() {
           type="text"
           name="title"
           className="form-input"
-          placeholder="Entry title…"
+          defaultValue={entry.title}
           required
-          autoFocus
         />
       </div>
 
       <div className="form-field">
         <label className="form-label">Body</label>
-        <JournalEditor ref={editorRef} name="body" />
+        <JournalEditor ref={editorRef} name="body" initialContent={entry.body} />
       </div>
 
       <div className="form-actions">
